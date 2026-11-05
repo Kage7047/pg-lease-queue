@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3
       - run: uv venv && uv pip install -e ".[dev]"
       - run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - run: ruff check --output-format github .
@@ -42,7 +42,7 @@ jobs:
       PGLQ_TEST_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3
       - run: uv venv && uv pip install -e ".[dev]"
       - run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - name: tests
