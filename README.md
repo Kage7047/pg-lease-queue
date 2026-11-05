@@ -183,6 +183,8 @@ claims burning CPU on dead tuples and "mark done" updates queued behind them. Ba
 batching completions, and per-table autovacuum settings fixed it. The diagnosis is in
 [ADR 0004](docs/adr/0004-batching-claims-and-completions.md). Throughput at this size is bound by
 commits and by CPU on two cores, not by locking.
+The long version, with the wait-event samples and diagrams:
+[Adding workers made my Postgres queue 5× slower](https://kage7047.github.io/writing/more-workers-slower/).
 
 ## Metrics
 
