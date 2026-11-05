@@ -1,0 +1,58 @@
+[project]
+name = "pg-lease-queue"
+version = "0.1.0"
+description = "A crash-safe job queue on plain Postgres: SKIP LOCKED claims, leases with fencing tokens, exactly-once effects."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+keywords = ["postgres", "job-queue", "task-queue", "skip-locked", "asyncio"]
+dependencies = [
+  "psycopg[binary]>=3.2",
+  "psycopg-pool>=3.2",
+  "prometheus-client>=0.21",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "pytest-cov>=6.0",
+  "ruff>=0.8",
+  "mypy>=1.13",
+]
+
+[project.scripts]
+pglq = "pglq.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pglq"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/pglq"]
+
+[[tool.mypy.overrides]]
+module = ["prometheus_client.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["chaos: kills worker processes at random (slow)", "no_db: runs without Postgres"]
+
+[tool.coverage.run]
+source = ["pglq"]
+concurrency = ["thread"]
