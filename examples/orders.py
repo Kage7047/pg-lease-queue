@@ -53,8 +53,13 @@ def setup(dsn: str) -> None:
             (order_id,) = conn.execute(
                 "insert into orders (amount_cents) values (%s) returning id", (amount,)
             ).fetchone()
-            pglq.enqueue(conn, "charge", {"order_id": order_id, "amount_cents": amount},
-                         idempotency_key=f"charge-order-{order_id}", max_attempts=10)  # fmt: skip
+            pglq.enqueue(
+                conn,
+                "charge",
+                {"order_id": order_id, "amount_cents": amount},
+                idempotency_key=f"charge-order-{order_id}",
+                max_attempts=10,
+            )
         conn.commit()
     print("50 orders placed; start some workers: pglq worker examples.orders:tasks")
 

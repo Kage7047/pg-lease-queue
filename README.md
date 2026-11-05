@@ -1,7 +1,7 @@
 # pg-lease-queue
 
 [![ci](https://github.com/Kage7047/pg-lease-queue/actions/workflows/ci.yml/badge.svg)](https://github.com/Kage7047/pg-lease-queue/actions/workflows/ci.yml)
-![python](https://img.shields.io/badge/python-3.12%2B-blue)
+![python](https://img.shields.io/badge/python-3.12%E2%80%933.14-blue)
 ![postgres](https://img.shields.io/badge/postgres-14%E2%80%9317-336791)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -81,7 +81,8 @@ pglq stats
 ```
 
 [`examples/orders.py`](examples/orders.py) is a runnable version: place 50 orders, start workers,
-`kill -9` some, and check that every order was charged exactly once.
+`kill -9` some, and check that every order was charged exactly once. CI does exactly that on every
+push ([`tests/test_example.py`](tests/test_example.py)).
 
 ## How it works
 
@@ -236,12 +237,13 @@ the whole protocol fits in one file and is tested by killing it.
 ```bash
 make install
 make db          # a throwaway Postgres in Docker on :54329 (or point PGLQ_TEST_DSN anywhere disposable)
-make test        # 48 tests against Postgres
-make chaos       # the kill -9 test and its control (~1 minute)
+make test        # 49 tests against Postgres
+make chaos       # the kill -9 test, its control, and the example under kill -9 (~1 minute)
 make lint        # ruff + mypy --strict
 ```
 
-CI runs the whole suite, chaos included, against Postgres 14, 15, 16 and 17.
+CI runs the whole suite, chaos included, against Postgres 14, 15, 16 and 17, the unit suite on
+Python 3.13 and 3.14, builds the wheel and installs it in a clean environment, and scans for secrets.
 
 ## License
 

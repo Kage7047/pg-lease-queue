@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash  # -eo pipefail: a failing command piped into tee still fails the step
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -49,8 +53,43 @@ jobs:
         run: pytest -q -m "not chaos" -rs --cov=pglq --cov-report=term | tee out.txt
       - name: no test may skip for lack of a database
         run: "! grep -q SKIPPED out.txt"
-      - name: kill -9 chaos test and its control
+      - name: kill -9 chaos test, its control, and the README example
         run: pytest -q -s -m chaos
+
+  python:
+    # the library on newer Pythons (Postgres 17, chaos tests excluded)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      PGLQ_TEST_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv venv --python ${{ matrix.python }} && uv pip install -e ".[dev]"
+      - run: .venv/bin/pytest -q -m "not chaos"
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv build
+      - name: the wheel installs on its own and ships its type marker
+        run: |
+          uv venv /tmp/clean && uv pip install --python /tmp/clean dist/*.whl
+          /tmp/clean/bin/pglq --help >/dev/null
+          /tmp/clean/bin/python -c "import importlib.resources as r, pglq; assert r.files('pglq').joinpath('py.typed').is_file(); print(pglq.__version__)"
 
   secret-scan:
     runs-on: ubuntu-latest

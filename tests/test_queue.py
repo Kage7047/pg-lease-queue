@@ -55,8 +55,13 @@ def test_enqueue_defaults(conn):
     job_id = pglq.enqueue(conn, "send", {"to": "a@example.com"})
     r = row(conn, job_id)
     assert (r["task"], r["args"], r["status"], r["queue"], r["attempts"], r["max_attempts"]) == (
-        "send", {"to": "a@example.com"}, "queued", "default", 0, 5,
-    )  # fmt: skip
+        "send",
+        {"to": "a@example.com"},
+        "queued",
+        "default",
+        0,
+        5,
+    )
 
 
 def test_idempotency_key_dedupes_per_queue(conn):

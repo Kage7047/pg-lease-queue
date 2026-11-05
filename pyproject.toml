@@ -1,10 +1,23 @@
 [project]
 name = "pg-lease-queue"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A crash-safe job queue on plain Postgres: SKIP LOCKED claims, leases with fencing tokens, exactly-once effects."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
+authors = [{ name = "Ilya Nesterenok" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: AsyncIO",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Database",
+  "Topic :: System :: Distributed Computing",
+  "Typing :: Typed",
+]
 keywords = ["postgres", "job-queue", "task-queue", "skip-locked", "asyncio"]
 dependencies = [
   "psycopg[binary]>=3.2",
@@ -21,12 +34,20 @@ dev = [
   "mypy>=1.13",
 ]
 
+[project.urls]
+Source = "https://github.com/Kage7047/pg-lease-queue"
+Changelog = "https://github.com/Kage7047/pg-lease-queue/blob/main/CHANGELOG.md"
+Issues = "https://github.com/Kage7047/pg-lease-queue/issues"
+
 [project.scripts]
 pglq = "pglq.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/pglq/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pglq"]
@@ -56,3 +77,6 @@ markers = ["chaos: kills worker processes at random (slow)", "no_db: runs withou
 [tool.coverage.run]
 source = ["pglq"]
 concurrency = ["thread"]
+
+[tool.coverage.report]
+fail_under = 90

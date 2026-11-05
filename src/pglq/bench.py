@@ -33,8 +33,8 @@ async def noop(job: Job) -> None:
 @contextmanager
 def workers(dsn: str, n: int, concurrency: int, *extra: str) -> Iterator[None]:
     # the DSN may hold a password: pass it in the environment, not in argv where `ps` shows it
-    cmd = [sys.executable, "-m", "pglq", "worker", "pglq.bench:tasks", "--queues", QUEUE,
-           "--concurrency", str(concurrency), *extra]  # fmt: skip
+    cmd = [sys.executable, "-m", "pglq", "worker", "pglq.bench:tasks", "--queues", QUEUE]
+    cmd += ["--concurrency", str(concurrency), *extra]
     env = {**os.environ, "PGLQ_DSN": dsn}
     procs = [subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env) for _ in range(n)]
     try:
@@ -105,8 +105,10 @@ def main(dsn: str, args: argparse.Namespace) -> None:
         schema.migrate(conn)
         version = conn.execute("show server_version").fetchone()
     print(f"# pglq bench: {args.jobs} no-op jobs, concurrency {args.concurrency} per worker process")
-    print(f"Postgres {version[0] if version else '?'}, Python {platform.python_version()}, {os.cpu_count()} CPUs,"
-          f" {platform.processor() or platform.machine()}\n")  # fmt: skip
+    print(
+        f"Postgres {version[0] if version else '?'}, Python {platform.python_version()}, {os.cpu_count()} CPUs,"
+        f" {platform.processor() or platform.machine()}\n"
+    )
     print(f"| worker processes | jobs/s (median of {args.repeat}) | runs |\n|---:|---:|---|")
     for n in (int(x) for x in args.workers.split(",")):
         runs = sorted(throughput(dsn, args.jobs, n, args.concurrency) for _ in range(args.repeat))

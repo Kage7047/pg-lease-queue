@@ -13,4 +13,5 @@ First release.
 - asyncio worker with `LISTEN/NOTIFY` wake-ups and a polling backstop, batched claims and
   latency-free batched completions, per-task timeouts, sync handlers in threads, graceful shutdown.
 - Prometheus metrics, a `pglq` CLI, and `pglq bench`.
-- A `kill -9` chaos test with a control, run in CI on Postgres 14 to 17.
+- A `kill -9` chaos test with a control, and the README's example run under `kill -9`, in CI on
+  Postgres 14 to 17. Unit suite on Python 3.12 to 3.14. Ships `py.typed`.

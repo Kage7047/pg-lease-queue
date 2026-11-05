@@ -32,8 +32,8 @@ WORKERS = 4
 
 
 def start(dsn: str) -> subprocess.Popen[bytes]:
-    cmd = [sys.executable, "-m", "pglq", "worker", "tests.chaos_tasks:tasks",
-           "--concurrency", "8", "--lease", "2", "--poll", "0.5"]  # fmt: skip
+    cmd = [sys.executable, "-m", "pglq", "worker", "tests.chaos_tasks:tasks"]
+    cmd += ["--concurrency", "8", "--lease", "2", "--poll", "0.5"]
     env = {**os.environ, "PGLQ_DSN": dsn}
     return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
 

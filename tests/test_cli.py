@@ -30,8 +30,9 @@ def test_enqueue_stats_retry_and_prune(dsn, conn, capsys):
     assert "lag_seconds" in capsys.readouterr().out
 
     (j,) = claim(conn)
-    conn.execute("update pglq_jobs set status = 'dead', lease_token = null, lease_until = null where id = %s",
-                 (j["id"],))  # fmt: skip
+    conn.execute(
+        "update pglq_jobs set status = 'dead', lease_token = null, lease_until = null where id = %s", (j["id"],)
+    )
     run(dsn, "retry-dead", "--queue", "default")
     assert "revived 1" in capsys.readouterr().out
     run(dsn, "prune", "--older-than", "1d")
