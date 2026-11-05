@@ -157,8 +157,9 @@ class Worker:
             helpers.append(asyncio.create_task(self._listener(), name="pglq-listener"))
         if self.stats_interval:
             helpers.append(asyncio.create_task(self._stats(), name="pglq-stats"))
-        log.info("worker %s up: queues=%s concurrency=%d lease=%.1fs", self.name, self.queues, self.concurrency,
-                 self.lease)  # fmt: skip
+        log.info(
+            "worker %s up: queues=%s concurrency=%d lease=%.1fs", self.name, self.queues, self.concurrency, self.lease
+        )
         self._started.set()
         try:
             await self._loop()
@@ -234,6 +235,8 @@ class Worker:
                 log.warning("heartbeat for job %d failed: %s", job.id, e)
                 continue
             if not ok and not job.completed:
+                if job.in_transaction:
+                    continue  # blocked behind job.transaction()'s row lock; its commit decides
                 log.warning("job %d: lease lost, cancelling the handler", job.id)
                 job.lost = True
                 handler.cancel()
@@ -310,8 +313,17 @@ class Worker:
             return "lease_lost"
         status = "dead" if row[0] == "dead" else "retry"
         level = logging.ERROR if status == "dead" else logging.INFO
-        log.log(level, "job %d (%s) attempt %d/%d failed -> %s: %s", job.id, job.task, job.attempts,
-                job.max_attempts, status, error.splitlines()[0])  # fmt: skip
+        first_line = error.splitlines()[0]
+        log.log(
+            level,
+            "job %d (%s) attempt %d/%d failed -> %s: %s",
+            job.id,
+            job.task,
+            job.attempts,
+            job.max_attempts,
+            status,
+            first_line,
+        )
         return status
 
     async def _release(self, job: Job) -> None:

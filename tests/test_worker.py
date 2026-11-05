@@ -347,3 +347,29 @@ async def test_unregistered_task_names_share_one_metric_label(dsn, conn):
     labels = {"queue": "labels", "task": "unregistered", "outcome": "dead"}
     assert REGISTRY.get_sample_value("pglq_jobs_total", labels) == 2
     assert REGISTRY.get_sample_value("pglq_jobs_total", {**labels, "task": "typo-1"}) is None
+
+
+async def test_a_heartbeat_blocked_by_the_jobs_own_transaction_is_not_a_lost_lease(dsn, conn):
+    # The heartbeat's extend waits on the row lock that job.transaction() holds, then matches no
+    # row because the job is done by then. That must not be read as "lease lost".
+    from prometheus_client import REGISTRY
+
+    tasks = Tasks()
+    after = []
+
+    @tasks.task()
+    async def slow_effect(job):
+        async with job.transaction() as tx:
+            await tx.execute("insert into effects (job_id) values (%s)", (job.id,))
+            await asyncio.sleep(0.5)  # longer than a heartbeat interval (lease / 3 = 0.2 s)
+        after.append(job.id)
+
+    ids = [pglq.enqueue(conn, "slow_effect", {"n": n}) for n in range(30)]
+    async with running(worker(dsn, tasks, lease=0.6)):
+        await until(lambda: len(after) == len(ids))
+    assert all(status(conn, i) == "done" for i in ids)
+    assert conn.execute("select count(*) from effects").fetchone() == (len(ids),)
+    lost = REGISTRY.get_sample_value(
+        "pglq_jobs_total", {"queue": "default", "task": "slow_effect", "outcome": "lease_lost"}
+    )
+    assert not lost

@@ -61,6 +61,7 @@ class Job:
     lost: bool = False
     completed: bool = False
     result: Any = None
+    in_transaction: bool = False
     _pool: AsyncConnectionPool | None = field(default=None, repr=False)
 
     @property
@@ -78,15 +79,21 @@ class Job:
         """
         if self._pool is None:
             raise RuntimeError("job.transaction() needs a job handed out by a Worker")
-        async with self._pool.connection() as conn, conn.transaction():
-            ids = {"id": self.id, "token": self.lease_token}
-            if await (await conn.execute(sql.LOCK_FOR_EFFECT, ids)).fetchone() is None:
-                raise LeaseLost(self.id)
-            yield conn
-            cur = await conn.execute(sql.COMPLETE, {**ids, "result": as_json(self.result)})
-            if cur.rowcount != 1:  # impossible while we hold the row lock; keep the invariant loud
-                raise LeaseLost(self.id)
-        self.completed = True
+        # While this is set, the heartbeat may block on our row lock and then find the job already
+        # done; the transaction's own outcome, not that heartbeat, decides whether the lease held.
+        self.in_transaction = True
+        try:
+            async with self._pool.connection() as conn, conn.transaction():
+                ids = {"id": self.id, "token": self.lease_token}
+                if await (await conn.execute(sql.LOCK_FOR_EFFECT, ids)).fetchone() is None:
+                    raise LeaseLost(self.id)
+                yield conn
+                cur = await conn.execute(sql.COMPLETE, {**ids, "result": as_json(self.result)})
+                if cur.rowcount != 1:  # impossible while we hold the row lock; keep the invariant loud
+                    raise LeaseLost(self.id)
+            self.completed = True
+        finally:
+            self.in_transaction = False
 
 
 Handler = Callable[[Job], Awaitable[Any]] | Callable[[Job], Any]
